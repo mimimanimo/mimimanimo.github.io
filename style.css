@@ -8,6 +8,7 @@
   --accent-ink: #ffffff;
   --accent-soft: #eceffb;
   --radius: 14px;
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
   /* app.js 가 실제 값으로 덮어쓴다 */
   --slide: 420ms;
   --fade: 200ms;
@@ -191,42 +192,40 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 4px;
+  margin-top: 10px;
 }
 
+/* 눈에 잘 띄도록 옅은 강조색 알약 모양 */
 .back {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  height: 40px;
-  margin-left: -8px;
-  padding: 0 12px 0 4px;
+  height: 36px;
+  padding: 0 14px 0 8px;
   border: 0;
-  border-radius: 10px;
-  background: none;
-  color: var(--text);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 14%, var(--accent-soft));
+  color: var(--accent);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   touch-action: manipulation;
-  transition: opacity 150ms ease;
+  transition: opacity 150ms ease, background-color 120ms ease;
 }
 .back svg { width: 20px; height: 20px; }
-.back:active { background: var(--accent-soft); }
-.back:disabled { opacity: 0; pointer-events: none; }
-
-.bar-hint {
-  margin: 0;
-  font-size: 13px;
-  color: var(--muted);
+.back:active {
+  background: var(--line);
+  background: color-mix(in srgb, var(--accent) 26%, var(--accent-soft));
 }
+.back:disabled { opacity: 0; pointer-events: none; }
 
 .stage {
   position: relative;
   flex: 1;
   overflow: hidden;
-  /* 위로 밀려난 문항이 자연스럽게 사라지도록 윗부분을 흐리게 */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-h, 96px));
-  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-h, 96px));
+  /* 위로 밀려나는 문항이 윗변에서 뚝 잘리지 않도록 살짝 흐리게 (문항 위 여백 안이라 멈춘 화면엔 영향 없음) */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
 }
 
 .track {
@@ -235,19 +234,22 @@ h1 {
   left: 0;
   right: 0;
   padding: 0 20px;
-  transition: transform var(--slide) cubic-bezier(0.22, 0.8, 0.24, 1);
+  transition: transform var(--slide) var(--ease);
   will-change: transform;
 }
 
 .q {
   padding: 24px 0;
-  transition: opacity var(--fade) ease 60ms;
+  transition: opacity var(--fade) ease 60ms, transform var(--slide) var(--ease);
 }
+/* 번호·질문은 보기보다 더 올라가 맨 위에 멈춘다 (같은 시간, 다른 거리) */
+.q-num, .q-text, .q-ex { transition: transform var(--slide) var(--ease); }
 .q.is-entering { opacity: 0; }
+/* 답한 문항은 위로 밀려 올라가며 사라진다 */
 .q.is-past {
-  opacity: 0.28;
+  opacity: 0;
   pointer-events: none;
-  transition: opacity var(--slide) ease;
+  transition: opacity var(--slide) ease, transform var(--slide) var(--ease);
 }
 /* 이전 문항으로 돌아갈 때 지금 문항은 사라진다 */
 .q.is-leaving {
@@ -341,6 +343,7 @@ h1 {
 
 @media (hover: hover) {
   .opt:hover { border-color: var(--accent); }
+  .back:hover { background: color-mix(in srgb, var(--accent) 20%, var(--accent-soft)); }
 }
 
 /* 가로 모드처럼 세로가 짧은 화면 */
