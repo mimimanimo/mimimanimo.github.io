@@ -2,7 +2,7 @@
 // 꼬리표가 달라졌다면 아래 index 파일 이름만 바꾸면 된다. (척도 파일 이름은 index 안에 적혀 있다)
 
 // Google Apps Script 웹 앱 주소 (apps_script.gs 를 배포하면 나오는 https://script.google.com/macros/s/.../exec)
-const APPS_SCRIPT_URL = '';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXwUfoX4f8a2rtZI0UJ7e7wlC7wCmFouOPAOJnLuKZObWDODqrmsMj54VnyGkJfhrt/exec';
 
 window.DASS_CONFIG = {
   dataDir: 'data/',
