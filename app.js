@@ -65,7 +65,7 @@
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const HOLD_MS = 160;                      // 고른 보기를 잠깐 보여 준 뒤 넘어간다
-  const SLIDE_MS = reduceMotion ? 1 : 800;  // 답한 문항이 위로 올라가는 시간
+  const SLIDE_MS = reduceMotion ? 1 : 1100;  // 답한 문항이 위로 올라가는 시간
   const FADE_MS = 200;                      // 다음 문항이 투명 → 불투명으로 나타나는 시간
   const SCREEN_MS = 220;
 
@@ -98,10 +98,10 @@
   DassEngine.load(cfg.dataDir, cfg.indexFile).then(loaded => {
     data = loaded;
     const t = loaded.index.total_items;
-    if (t && t.q1 != null && t.q3 != null) {
-      $('length-fact').textContent = `응답에 따라 문항 수가 달라져요. 보통 ${t.q1}~${t.q3}문항이면 끝나요.`;
-    }
-    $('length-fact').hidden = false;
+    // if (t && t.q1 != null && t.q3 != null) {
+    //   $('length-fact').textContent = `응답에 따라 문항 수가 달라져요. 보통 ${t.q1}~${t.q3}문항이면 끝나요.`;
+    // // }
+    // $('length-fact').hidden = false;
     startBtn.disabled = false;
     startBtn.textContent = '시작하기';
   }).catch(err => {
@@ -188,18 +188,57 @@
     return block;
   }
 
-  // 지금 문항이 화면 가운데쯤(정가운데보다 살짝 위)에 오도록 맞춘다.
-  // 문항이 화면보다 길면 보기가 잘리지 않게 아래쪽에 맞춘다.
-  function anchorTo(block, animate) {
-    const h = stage.clientHeight, space = h - block.offsetHeight;
-    const y = Math.round(Math.min(space - 12, Math.max(12, space * 0.40)));
-    stage.style.setProperty('--fade-h', Math.max(0, Math.min(120, y - 8)) + 'px');
-    if (!animate) track.style.transition = 'none';
-    track.style.transform = `translate3d(0, ${y - block.offsetTop}px, 0)`;
+  // animate 가 아니면 nodes 의 움직임(transition)을 잠깐 끄고 바로 적용한다.
+  function apply(animate, nodes, fn) {
+    if (!animate) for (const n of nodes) n.style.transition = 'none';
+    fn();
     if (!animate) {
       track.offsetHeight;
-      track.style.transition = '';
+      for (const n of nodes) n.style.transition = '';
     }
+  }
+
+  const OPTS_LIFT = 50;  // 보기를 가운데쯤보다 이만큼 더 올린다
+  const HEAD_TOP = 40;   // 번호(첫 문항이면 안내 문구) 글자 윗변이 멈추는 높이 (문항 영역 윗변에서)
+
+  // 화면 맨 위에 맞출 글자: 번호, 첫 문항이면 그 위 안내 문구
+  function headOf(block) {
+    const lead = block.previousElementSibling;
+    const withLead = lead && lead.classList.contains('q-intro') && !lead.classList.contains('is-past');
+    return (withLead ? lead : block).firstElementChild;
+  }
+
+  // 지금 문항 블록이 화면 가운데쯤(정가운데보다 살짝 위)에서 OPTS_LIFT 만큼 더 위에 오도록 맞춘다.
+  // 보기는 이 자리에 멈춘다. 다만 번호(첫 문항이면 안내 문구)가 HEAD_TOP 보다 위로 잘려 나가지 않을 만큼만 올린다.
+  // 문항이 화면보다 길면 보기가 잘리지 않게 아래쪽에 맞춘다.
+  let anchorY = 0;  // 맞춘 문항 블록 윗변의 화면 안 위치
+  function anchorTo(block, animate) {
+    const h = stage.clientHeight, space = h - block.offsetHeight;
+    const highest = HEAD_TOP - (headOf(block).offsetTop - block.offsetTop);
+    anchorY = Math.round(Math.min(space - 12, Math.max(highest, space * 0.40 - OPTS_LIFT)));
+    apply(animate, [track], () => {
+      track.style.transform = `translate3d(0, ${anchorY - block.offsetTop}px, 0)`;
+    });
+  }
+
+  // 번호·질문(첫 문항이면 위 안내 문구까지)은 보기보다 더 올려 화면 위쪽(HEAD_TOP)에 둔다.
+  // anchorTo 와 함께 부르면 처음엔 붙어 있다가 한 번에 올라가면서 벌어진다.
+  // 그 위의 지난 문항도 같은 만큼 더 밀려 올라간다.
+  function raise(block, animate) {
+    const first = headOf(block);
+    const up = Math.max(0, anchorY + first.offsetTop - block.offsetTop - HEAD_TOP);
+    const transform = up ? `translate3d(0, ${-up}px, 0)` : '';
+    const heads = [...block.children].filter(n => !n.classList.contains('opts'));
+    const above = [...track.children].slice(0, [...track.children].indexOf(block));
+    apply(animate, [...heads, ...above], () => {
+      for (const n of [...heads, ...above]) n.style.transform = transform;
+    });
+  }
+
+  // 올렸던 블록을 원래 모양으로 (이전 문항으로 돌아갈 때)
+  function lower(block) {
+    block.style.transform = '';
+    for (const n of block.children) n.style.transform = '';
   }
 
   // 지금 문항과 바로 앞 두 블록만 남긴다. 위쪽 블록이 빠진 만큼 즉시 다시 맞춰서 화면은 그대로다.
@@ -236,6 +275,7 @@
       current = renderQuestion(next.item, 1);
       track.appendChild(current);
       anchorTo(current, false);
+      raise(current, false);
       setProgress();
     });
   }
@@ -262,7 +302,8 @@
     current = renderQuestion(next.item, session.responses.length + 1);
     current.classList.add('is-entering');
     track.appendChild(current);
-    anchorTo(current, true);     // 답한 문항이 위로 올라가고
+    anchorTo(current, true);     // 답한 문항은 위로 밀려 사라지고
+    raise(current, true);        // 새 문항은 한 번에 올라오며 번호·질문만 맨 위까지 간다
     current.offsetHeight;
     current.classList.remove('is-entering');  // 새 문항이 서서히 나타난다
     setTimeout(() => {
@@ -280,16 +321,19 @@
     const popped = session.undo();
     const prev = pastBlock(popped);
     if (!prev.parentNode) track.insertBefore(prev, leaving);
-    // 그 위에도 지난 문항(첫 문항이면 안내 문구)이 흐리게 보이도록
-    if (!prev.previousElementSibling) {
-      const before = session.responses[session.responses.length - 1];
-      track.insertBefore(before ? pastBlock(before) : renderLead(), prev);
+    // 첫 문항이면 그 위 안내 문구도 다시 보이도록
+    if (popped.order === 1) {
+      const lead = prev.previousElementSibling || track.insertBefore(renderLead(), prev);
+      lead.classList.remove('is-past');
+      lower(lead);
     }
+    lower(prev);
     anchorTo(leaving, false);             // 위에 끼운 만큼 즉시 맞춰서 화면은 그대로
     leaving.classList.add('is-leaving');  // 지금 문항은 사라지고
     current = prev;
     current.classList.remove('is-past');
-    anchorTo(current, true);              // 이전 문항이 다시 내려온다
+    anchorTo(current, true);              // 이전 문항이 다시 내려오며
+    raise(current, true);                 // 번호·질문은 맨 위에 멈춘다
     setProgress();
     setTimeout(() => {
       leaving.remove();
@@ -313,7 +357,9 @@
   });
 
   window.addEventListener('resize', () => {
-    if (!screens.survey.hidden && current) anchorTo(current, false);
+    if (screens.survey.hidden || !current) return;
+    anchorTo(current, false);
+    raise(current, false);
   });
 
   // ---------- 결과 ----------
