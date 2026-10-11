@@ -54,8 +54,9 @@
     '전혀 그렇지 않다',
     '가끔 그렇다',
     '자주 그렇다',
-    '항상 그렇다',
+    '거의 항상 그렇다',
   ];
+  
 
   const SCALE_KO = { Depression: '우울', Anxiety: '불안', Stress: '스트레스' };
   const GRADE_KO = { Normal: '정상', Mild: '경미', Moderate: '중등도', Severe: '심함', 'Extremely Severe': '매우 심함' };
