@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>engine check</title>
+<style>body { font: 14px/1.5 ui-monospace, Consolas, monospace; padding: 16px; } .fail { color: #c00; }</style>
+</head>
+<body>
+<pre id="out">running…</pre>
+<script src="../config.js"></script>
+<script src="../engine.js"></script>
+<script>
+// 1) 척도 json 의 test_cases 를 엔진에 넣어 expected 와 같은지 본다.
+// 2) 무작위 응답으로 세션을 여러 번 돌려 문항 섞기 규칙이 지켜지는지 본다.
+(async function () {
+  const out = document.getElementById('out');
+  const lines = [];
+  let failures = 0;
+  const log = (s, bad) => { lines.push(bad ? '✗ ' + s : s); if (bad) failures++; };
+
+  try {
+    const cfg = window.DASS_CONFIG;
+    const { index, scales } = await DassEngine.load('../' + cfg.dataDir, cfg.indexFile);
+
+    for (const scale of scales) {
+      let ok = 0;
+      for (const tc of scale.test_cases) {
+        let res = null;
+        for (let k = 1; k <= tc.answers.length; k++) {
+          res = DassEngine.evaluate(scale, tc.answers.slice(0, k));
+          if (res.stop) break;
+        }
+        const ex = tc.expected;
+        const probsOk = ex.probs.every((p, g) => Math.abs(p - res.probs[g]) < 6e-5);
+        const scoreOk = ex.score == null || Math.abs(ex.score - res.score) < 6e-4;
+        if (res.k === ex.n_items && res.grade === ex.grade && probsOk && scoreOk) ok++;
+        else log(`${scale.scale} holdout_row=${tc.holdout_row}: got k=${res.k} g=${res.grade} score=${res.score} probs=${res.probs.map(p => p.toFixed(4))} / expected k=${ex.n_items} g=${ex.grade} score=${ex.score} probs=${ex.probs}`, true);
+      }
+      log(`${scale.scale}: test_cases ${ok}/${scale.test_cases.length} 일치`);
+    }
+
+    // 무작위 세션
+    const N = 3000;
+    const totals = [];
+    const perScale = {};
+    let t0 = performance.now();
+    for (let n = 0; n < N; n++) {
+      const ses = new DassEngine.Session(scales);
+      const bias = Math.random();  // 응답자마다 성향을 달리해 여러 등급이 나오게
+      let prevScale = null, lastProgress = 0, steps = 0;
+      while (ses.next()) {
+        const { scale, item } = ses.current;
+        const active = ses.scales.filter(s => !s.result).length;
+        if (active > 1 && scale === prevScale) log(`세션 ${n}: 남은 척도가 ${active}개인데 ${scale.name} 를 연달아 물음`, true);
+        if (item !== scale.data.items[scale.answers.length]) log(`세션 ${n}: ${scale.name} 문항 순서가 어긋남`, true);
+        const a = Math.min(3, Math.floor(Math.random() * 2 + bias * 3));
+        ses.answer(a);
+        const p = ses.progress();
+        if (p < lastProgress - 1e-12) log(`세션 ${n}: 진행률이 줄어듦 ${lastProgress} -> ${p}`, true);
+        lastProgress = p;
+        prevScale = scale;
+        if (++steps > 42) { log(`세션 ${n}: 42문항 초과`, true); break; }
+      }
+      if (!ses.isDone() || Math.abs(ses.progress() - 1) > 1e-12) log(`세션 ${n}: 끝났는데 결과/진행률이 맞지 않음`, true);
+      totals.push(ses.responses.length);
+      for (const s of ses.scales) {
+        const d = perScale[s.name] || (perScale[s.name] = { grades: [0, 0, 0, 0, 0], items: 0 });
+        d.grades[s.result.grade]++;
+        d.items += s.answers.length;
+      }
+    }
+    const ms = performance.now() - t0;
+
+    // 이전 문항으로 돌아가기: 무작위로 undo 를 섞어도 상태가 남은 응답만으로 계산한 것과 같아야 한다
+    let undos = 0;
+    for (let n = 0; n < 1000; n++) {
+      const ses = new DassEngine.Session(scales);
+      const bias = Math.random();
+      let steps = 0;
+      while (ses.next()) {
+        if (ses.responses.length && Math.random() < 0.3) {
+          const popped = ses.undo();
+          undos++;
+          if (ses.current.item.item !== popped.item) log(`undo 세션 ${n}: 취소한 문항(Q${popped.item})을 다시 묻지 않음`, true);
+        } else {
+          ses.answer(Math.min(3, Math.floor(Math.random() * 2 + bias * 3)));
+        }
+        for (const s of ses.scales) {
+          const mine = ses.responses.filter(r => r.scale === s.name).map(r => r.value - 1);
+          if (mine.join() !== s.answers.join()) log(`undo 세션 ${n}: ${s.name} 응답이 기록과 다름`, true);
+          const stop = s.answers.length > 0 && DassEngine.evaluate(s.data, s.answers).stop;
+          if (stop !== !!s.result) log(`undo 세션 ${n}: ${s.name} 종료 상태가 다시 계산한 것과 다름`, true);
+        }
+        if (++steps > 500) { log(`undo 세션 ${n}: 끝나지 않음`, true); break; }
+      }
+      if (!ses.isDone()) log(`undo 세션 ${n}: 끝나지 않음`, true);
+    }
+    log(`이전 문항 이동 섞은 세션 1000회 (undo ${undos}번): 상태 일관성 확인`);
+
+    totals.sort((a, b) => a - b);
+    const mean = totals.reduce((a, b) => a + b, 0) / N;
+    log(`\n무작위 세션 ${N}회: 총 문항 평균 ${mean.toFixed(1)}, 중앙값 ${totals[N >> 1]}, 최소 ${totals[0]}, 최대 ${totals[N - 1]} (${(ms / N).toFixed(2)}ms/세션)`);
+    for (const [name, d] of Object.entries(perScale)) log(`  ${name}: 평균 ${(d.items / N).toFixed(1)}문항, 등급 분포 ${d.grades.join(' / ')}`);
+
+    // 섞인 순서 예시
+    const ses = new DassEngine.Session(scales);
+    while (ses.next()) ses.answer(1);
+    log('\n예시 순서 (모두 2번 보기): ' + ses.responses.map(r => r.scale[0] + r.k + '(Q' + r.item + ')').join(' '));
+  } catch (e) {
+    log('오류: ' + (e && e.stack || e), true);
+  }
+
+  log(failures ? `\nFAIL (${failures})` : '\nPASS');
+  out.textContent = lines.join('\n');
+  document.title = failures ? 'FAIL' : 'PASS';
+})();
+</script>
+</body>
+</html>

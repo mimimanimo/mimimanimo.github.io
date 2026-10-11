@@ -1,0 +1,423 @@
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --text: #1a1a1c;
+  --muted: #6e6e76;
+  --line: #e2e2df;
+  --accent: #3454d1;
+  --accent-ink: #ffffff;
+  --accent-soft: #eceffb;
+  --radius: 14px;
+  /* app.js 가 실제 값으로 덮어쓴다 */
+  --slide: 420ms;
+  --fade: 200ms;
+  --screen: 220ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121214;
+    --surface: #1c1c1f;
+    --text: #f2f2f3;
+    --muted: #9b9ba3;
+    --line: #2d2d32;
+    --accent: #6f8cff;
+    --accent-ink: #0d0d10;
+    --accent-soft: #20253a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  overscroll-behavior: none;
+}
+
+button { font: inherit; color: inherit; -webkit-appearance: none; appearance: none; cursor: pointer; }
+
+.app {
+  position: relative;
+  max-width: 480px;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+/* ---------- 화면 전환 ---------- */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  transition: opacity var(--screen) ease;
+}
+.screen[hidden] { display: none; }
+.screen.is-hidden { opacity: 0; }
+
+/* ---------- 공통 ---------- */
+.eyebrow {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 28px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  margin: 0 0 28px;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.cta {
+  display: grid;
+  gap: 4px;
+  padding: 12px 24px 20px;
+}
+
+.btn {
+  width: 100%;
+  height: 56px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 17px;
+  font-weight: 600;
+  touch-action: manipulation;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.btn:disabled { background: var(--line); color: var(--muted); cursor: default; }
+
+.btn-text {
+  height: 44px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.btn-text:disabled { text-decoration: none; cursor: default; }
+.btn-text[hidden] { display: none; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- 시작 화면 ---------- */
+.intro-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 24px 16px;
+  overflow-y: auto;
+}
+
+.facts {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.facts li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.facts li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.68em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.facts li[hidden] { display: none; }
+
+.error {
+  margin: 20px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #c4372f;
+}
+
+/* ---------- 문항 화면 ---------- */
+.bar { padding: 14px 20px 0; }
+
+.progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.progress i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--slide) ease;
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 40px;
+  margin-left: -8px;
+  padding: 0 12px 0 4px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  touch-action: manipulation;
+  transition: opacity 150ms ease;
+}
+.back svg { width: 20px; height: 20px; }
+.back:active { background: var(--accent-soft); }
+.back:disabled { opacity: 0; pointer-events: none; }
+
+.bar-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  /* 위로 밀려난 문항이 자연스럽게 사라지도록 윗부분을 흐리게 */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-h, 96px));
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-h, 96px));
+}
+
+.track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 0 20px;
+  transition: transform var(--slide) cubic-bezier(0.22, 0.8, 0.24, 1);
+  will-change: transform;
+}
+
+.q {
+  padding: 24px 0;
+  transition: opacity var(--fade) ease 60ms;
+}
+.q.is-entering { opacity: 0; }
+.q.is-past {
+  opacity: 0.28;
+  pointer-events: none;
+  transition: opacity var(--slide) ease;
+}
+/* 이전 문항으로 돌아갈 때 지금 문항은 사라진다 */
+.q.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--fade) ease;
+}
+
+/* 첫 문항 위 안내 문구: 첫 문항에 가깝게 */
+.q.q-intro { padding-bottom: 0; }
+
+.q-lead {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.q-num {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.q-text {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.q-ex {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.opts {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 16px;
+  line-height: 1.4;
+  text-align: left;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.opt:active { background: var(--accent-soft); }
+
+.opt-n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  transition: inherit;
+}
+
+.opt.is-selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.opt.is-selected .opt-n {
+  background: rgba(255, 255, 255, 0.22);
+  color: inherit;
+}
+
+@media (hover: hover) {
+  .opt:hover { border-color: var(--accent); }
+}
+
+/* 가로 모드처럼 세로가 짧은 화면 */
+@media (max-height: 560px) {
+  .q { padding: 14px 0; }
+  .q-text { font-size: 18px; }
+  .opts { gap: 6px; margin-top: 14px; }
+  .opt { min-height: 44px; padding: 8px 14px; font-size: 15px; }
+}
+
+/* ---------- 결과 화면 ---------- */
+.result-body {
+  flex: 1;
+  padding: 40px 24px 16px;
+  overflow-y: auto;
+}
+
+.scores {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.score {
+  padding: 18px 18px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.score-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.score-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.score-grade {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.meter {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin-top: 14px;
+}
+.meter i {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+}
+.meter i.on { background: var(--accent); }
+
+.meter-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.note {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.note a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}

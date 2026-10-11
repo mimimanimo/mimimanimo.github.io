@@ -1,0 +1,42 @@
+{
+  "format": "dass-curtail-site-index",
+  "format_version": 1,
+  "generated_at": "2026-10-11 17:11:08",
+  "note": "척도마다 검사가 따로 돈다 (한 척도의 응답은 다른 척도 판정에 쓰이지 않는다). 사이트는 scales의 파일을 각각 읽어 차례로 검사하면 된다.",
+  "scales": [
+    {
+      "scale": "Depression",
+      "file": "depression_no_demo_reg_n1ratio_tuneall_greedy_argmax_balanced_target_dass21plus0p02_site.json",
+      "mean_items": 5.4979,
+      "balanced_accuracy": 0.809252,
+      "exact_accuracy": 0.853028,
+      "dass21_balanced_accuracy": 0.768762
+    },
+    {
+      "scale": "Anxiety",
+      "file": "anxiety_no_demo_reg_n1ratio_tuneall_greedy_argmax_balanced_target_dass21plus0p02_site.json",
+      "mean_items": 4.6323,
+      "balanced_accuracy": 0.643708,
+      "exact_accuracy": 0.754943,
+      "dass21_balanced_accuracy": 0.629468
+    },
+    {
+      "scale": "Stress",
+      "file": "stress_no_demo_reg_n1ratio_tuneall_greedy_argmax_balanced_target_dass21plus0p02_site.json",
+      "mean_items": 4.7855,
+      "balanced_accuracy": 0.703984,
+      "exact_accuracy": 0.738596,
+      "dass21_balanced_accuracy": 0.680495
+    }
+  ],
+  "total_items": {
+    "mean": 14.9156,
+    "median": 14.0,
+    "q1": 10.0,
+    "q3": 19.0,
+    "iqr": 9.0,
+    "min": 4,
+    "max": 36,
+    "share_at_most_21": 0.836836
+  }
+}
